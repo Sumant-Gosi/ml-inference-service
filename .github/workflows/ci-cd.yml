@@ -59,34 +59,29 @@ jobs:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.9
         with:
-            host: ${{ secrets.EC2_HOST }}
-            username: ${{ secrets.EC2_USER }}
-            key: ${{ secrets.EC2_SSH_KEY }}
-            port: 22
-            script: |
-                # Export variables
-                export AWS_REGION=${{ secrets.AWS_REGION }}
-                export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
-                export ECR_REPOSITORY=ml-inference-service
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Export variables
+            export AWS_REGION=${{ secrets.AWS_REGION }}
+            export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
+            export ECR_REPOSITORY=ml-inference-service
 
-                # Log in to ECR
-                aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+            # Log in to ECR
+            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
-                # Pull latest image
-                docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+            # Pull latest Docker image
+            docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
 
-                # Stop old container if exists
-                docker rm -f ml-api || true
+            # Stop old container if exists
+            docker rm -f ml-api || true
 
-                # Kill any process using port 80
-                PORT_IN_USE=$(sudo lsof -t -i:80 || true)
-                if [ ! -z "$PORT_IN_USE" ]; then
-                    echo "Port 80 is in use, killing process $PORT_IN_USE"
-                    sudo kill -9 $PORT_IN_USE
-                fi
+            # Stop any container using port 80
+            docker ps -q --filter "publish=80" | xargs -r docker rm -f
 
-                # Remove old images to save space
-                docker image prune -af
+            # Remove old images to save space
+            docker image prune -af
 
-                # Run new container
-                docker run -d --name ml-api -p 80:8000 $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+            # Run new container
+            docker run -d --name ml-api -p 80:8000 $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
