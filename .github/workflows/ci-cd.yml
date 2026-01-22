@@ -69,9 +69,10 @@ jobs:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.9
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          host: ${{ secrets.EC2_HOST }}           # Public IP of your EC2
+          username: ${{ secrets.EC2_USER }}      # Usually 'ubuntu'
+          key: ${{ secrets.EC2_SSH_KEY }}        # Your private key with BEGIN/END lines
+          port: 22
           script: |
             # Log in to ECR from EC2
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
@@ -79,7 +80,7 @@ jobs:
             # Pull latest Docker image
             docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/$ECR_REPOSITORY:latest
 
-            # Stop old container if exists
+            # Stop old container if it exists
             docker rm -f ml-api || true
 
             # Run new container
