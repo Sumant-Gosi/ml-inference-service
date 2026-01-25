@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-inference-deployment   # a unique name for this deployment
+spec:
+  replicas: 1                      # number of pods (1 for now, can scale later)
+  selector:
+    matchLabels:
+      app: ml-inference           # tells Kubernetes which pods belong to this deployment
+  template:
+    metadata:
+      labels:
+        app: ml-inference         # label used by the selector above
+    spec:
+      containers:
+      - name: ml-inference
+        image: 797923187234.dkr.ecr.eu-north-1.amazonaws.com/ml-inference-service:latest
+        ports:
+        - containerPort: 8000     # the port your container exposes internally
